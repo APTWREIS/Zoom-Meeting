@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - APTWREIS (Gurukulam) Zoom Meeting & Attendance Manager</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏛️</text></svg>">
+</head>
+
+<body>
+  <!-- =========================================================
+       ADMINISTRATOR AUTHENTICATION GATE (Username & Password)
+       ========================================================= -->
+  <div class="auth-overlay" id="adminAuthOverlay" style="display: flex;">
+    <div class="auth-card">
+      <div class="auth-icon-badge">🔒</div>
+      <h2 class="auth-title">Admin Authentication</h2>
+      <p class="auth-subtitle">
+        APTWREIS (Gurukulam) • IT-WING Amaravati at Tadepalli<br>
+        Please enter administrator credentials to access management tools.
+      </p>
+
+      <div id="authErrorMsg" class="auth-error" style="display: none;">
+        ⚠️ Invalid username or password. Please check your credentials.
+      </div>
+
+      <form id="formAdminLogin">
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="adminUsername">Administrator Username *</label>
+          <input type="text" id="adminUsername" class="form-input" placeholder="Username or email address" required
+            autocomplete="username" autofocus style="padding: 0.65rem 0.85rem;">
+        </div>
+
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="adminPassword">Password *</label>
+          <input type="password" id="adminPassword" class="form-input" placeholder="••••••••" required
+            autocomplete="current-password" style="padding: 0.65rem 0.85rem;">
+        </div>
+
+        <div
+          style="display: flex; justify-content: flex-start; align-items: center; margin-bottom: 1.25rem; font-size: 0.8rem;">
+          <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: var(--text-muted);">
+            <input type="checkbox" id="rememberAdmin" style="cursor: pointer;">
+            Keep me signed in
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary"
+          style="width: 100%; padding: 0.75rem; font-size: 0.95rem; font-weight: 700;">
+          🔓 Sign In to Admin Dashboard
+        </button>
+      </form>
+
+      <div style="margin-top: 1.25rem; text-align: center;">
+        <a href="index.html" style="font-size: 0.82rem; color: var(--primary); text-decoration: none;">
+          ← Go to Attendee Check-In Portal
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="landscape-wrapper-wide" id="adminMainContent"
+    style="filter: blur(4px); pointer-events: none; transition: filter 0.3s ease;">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="logo-badge">🏛️</div>
+        <div class="logo-text">
+          <h1>APTWREIS (Gurukulam) - Admin Portal</h1>
+          <p>IT-WING, APTWREI Society • Amaravati at Tadepalli • Master Attendance & Zoom Management</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="live-clock-pill" id="adminClockDisplay" title="Current Indian Standard Time (IST)">
+          <span>🕒</span>
+          <span id="adminClockText">Live Portal Active</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnSyncStatusHeader" title="Google Sheets Live Database Status">
+          <span id="headerSyncDot" class="sync-dot-live" style="display: none;"></span>
+          <span id="headerSyncText">📊 Google Sheets Sync</span>
+        </button>
+        <a href="index.html" target="_blank" class="btn btn-secondary btn-sm" title="Open Attendee Portal">
+          <span>👥</span> Attendee View
+        </a>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnAdminLogout"
+          style="color: var(--danger); border-color: rgba(220, 38, 38, 0.3);" title="Sign out of Admin Portal">
+          🚪 Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Landscape Layout (2 Columns: Left 480px Controls, Right Flexible Widescreen Roster) -->
+    <div class="main-layout" style="grid-template-columns: 480px 1fr; gap: 1.5rem;">
+
+      <!-- Left Column: Copy-Paste Meeting Creator & Link Generator -->
+      <aside>
+
+        <!-- Card 0: Google Sheets Cloud Sync (Live Excel Database) -->
+        <div class="card" id="cardSheetsSync" style="border-left: 4px solid #059669;">
+          <div class="card-title-row" style="margin-bottom: 0.35rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.15rem;">📊</span>
+              <h2 class="card-title" style="font-size: 1.05rem;">Google Sheets Live Sync</h2>
+            </div>
+            <span class="badge sync-badge-disconnected" id="badgeSyncStatus">⚪ Local Only</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Stores meetings & attendance in Google Sheets (online Excel). All users on any phone or PC will see meetings in real time.
+          </p>
+
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label class="form-label" for="inputSheetsUrl" style="font-size: 0.75rem;">Google Apps Script Web App URL</label>
+            <input type="url" id="inputSheetsUrl" class="form-input" placeholder="https://script.google.com/macros/s/.../exec" style="font-size: 0.78rem; font-family: var(--font-mono); padding: 0.45rem 0.65rem;">
+          </div>
+
+          <div style="display: flex; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 0.6rem;">
+            <button type="button" class="btn btn-primary btn-sm" id="btnSaveSheetsUrl" style="flex: 1;">
+              💾 Save & Connect
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnTestSheetsUrl">
+              🔌 Test Connection
+            </button>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+            <a href="#" id="linkOpenGoogleSheet" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: none; font-weight: 600; display: none;">
+              ↗️ Open Google Sheet
+            </a>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnOpenSetupGuide" style="font-size: 0.74rem; padding: 0.2rem 0.5rem; margin-left: auto;">
+              📖 1-Min Setup Guide & Code
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 1: Copy-Paste Meeting Invitation Parser -->
+        <div class="card">
+          <div class="card-title-row">
+            <h2 class="card-title">📋 1-Click Meeting Creator</h2>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnLoadSample"
+              style="font-size: 0.76rem; padding: 0.2rem 0.5rem;" title="Load APTWREIS MITRA sample invitation">
+              ⚡ Load Sample
+            </button>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Paste WhatsApp or Zoom invitation text. It extracts Topic, Zoom URL, Meeting ID, Passcode, and Time
+            automatically.
+          </p>
+
+          <div class="form-group">
+            <label class="form-label" for="pasteInvitationText">Paste Invitation Text Here</label>
+            <textarea id="pasteInvitationText" class="form-input" rows="6" placeholder="Sir/Madam,
+Secretary APTWREIS(Gurukulam) is inviting you to a scheduled Zoom meeting.
+Topic: Secretary, APTWREIS (Gurukulam) – Zoom Meeting Regarding MITRA – Reg.
+Time: Sep 16, 2026 03:30 PM India
+Join Zoom Meeting
+https://us06web.zoom.us/j/86333953207?pwd=...
+Meeting ID: 863 3395 3207
+Passcode: 490494
+-
+With Regards,
+IT-WING
+APTWREI Society (Gurukulam)
+Amaravarti at Tadepali." style="font-family: var(--font-mono); font-size: 0.8rem; resize: vertical;"></textarea>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <button type="button" class="btn btn-primary" id="btnParsePaste" style="flex: 1;">
+              ⚡ Parse & Fill Fields
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnClearPaste">
+              Clear
+            </button>
+          </div>
+
+          <!-- Parse Success Notice -->
+          <div id="parseSuccessBanner"
+            style="display: none; padding: 0.6rem 0.85rem; background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.82rem; color: var(--success-text);">
+            ✓ <strong>Invitation parsed!</strong> Verify details below and click "Save & Create Meeting".
+          </div>
+
+          <!-- Detailed Form / Review & Save -->
+          <form id="formCreateMeeting">
+            <div class="form-group">
+              <label class="form-label" for="mtgTitle">Meeting Topic *</label>
+              <input type="text" id="mtgTitle" class="form-input"
+                placeholder="e.g. Secretary, APTWREIS (Gurukulam) – Zoom Meeting Regarding MITRA – Reg." required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="mtgZoomUrl">Zoom Link *</label>
+              <input type="url" id="mtgZoomUrl" class="form-input" placeholder="https://us06web.zoom.us/j/..." required>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label" for="mtgId">Meeting ID</label>
+                <input type="text" id="mtgId" class="form-input" placeholder="e.g. 86333953207">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="mtgPasscode">Passcode</label>
+                <input type="text" id="mtgPasscode" class="form-input" placeholder="e.g. 490494">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label" for="mtgTimeText">Scheduled Time</label>
+                <input type="text" id="mtgTimeText" class="form-input" placeholder="e.g. Sep 16, 2026 03:30 PM India">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="mtgGrace">Grace (Mins)</label>
+                <input type="number" id="mtgGrace" class="form-input" value="15" min="0" max="60">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="mtgDesc">Official Note / Signature</label>
+              <textarea id="mtgDesc" class="form-input" rows="2" placeholder="With Regards, IT-WING..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;" id="btnSaveMeeting">
+              💾 Save & Create Meeting
+            </button>
+          </form>
+        </div>
+
+        <!-- Card 2: Scheduled Zoom Meeting Sessions -->
+        <div class="card">
+          <div class="card-title-row" style="margin-bottom: 0.35rem;">
+            <h2 class="card-title" style="font-size: 1.05rem;">📅 Scheduled Zoom Meeting Sessions</h2>
+            <span class="badge badge-on-time" id="adminMeetingCountBadge">Sessions</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+            Official Zoom sessions created. Select to inspect attendance roster, copy links, or delete sessions.
+          </p>
+          <div id="meetingsListContainer">
+            <!-- Rendered dynamically by js/admin.js: First Present, Next Upcoming, Next Over -->
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- Right Column: Live Attendance Roster Sheet -->
+      <main>
+        <div class="card">
+          <div class="card-title-row">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                <h2 class="card-title">📋 Live Attendance Roster</h2>
+                <span class="badge badge-on-time" id="rosterTimeStatusBadge">● Live Now</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;" id="rosterMeetingSubtitle">
+                Official attendee records logged for the selected Gurukulam session.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+              <!-- Option for Excel Download (Enabled when Live Attendance Roster is selected) -->
+              <div class="excel-download-btn-group" id="excelButtonGroup" style="display: none;">
+                <button type="button" class="btn btn-success btn-sm" id="btnExportExcel"
+                  title="Download Attendance Roster in Excel (.xls)" style="border-top-right-radius: 0; border-bottom-right-radius: 0;">
+                  <span>📊</span>
+                  <span id="btnExportExcelText">Download Excel</span>
+                </button>
+                <button type="button" class="btn btn-success btn-sm" id="btnExportMenuToggle"
+                  title="More export options (CSV, Selected rows)"
+                  style="padding: 0.35rem 0.5rem; border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: 1px solid rgba(255,255,255,0.35);">
+                  ▾
+                </button>
+                <div class="dropdown-menu-export" id="exportDropdownMenu" style="display: none;">
+                  <button type="button" class="dropdown-item-export" id="btnExportXls">
+                    <span style="font-size: 1.1rem;">📊</span>
+                    <div>
+                      <div style="font-weight: 600;">Download Excel (.xls)</div>
+                      <div style="font-size: 0.72rem; color: var(--text-muted);">Formatted spreadsheet with colors & headers</div>
+                    </div>
+                  </button>
+                  <button type="button" class="dropdown-item-export" id="btnExportCSV">
+                    <span style="font-size: 1.1rem;">📄</span>
+                    <div>
+                      <div style="font-weight: 600;">Download CSV (.csv)</div>
+                      <div style="font-size: 0.72rem; color: var(--text-muted);">Standard UTF-8 comma separated values</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <button class="btn btn-secondary btn-sm" onclick="window.print()" title="Print Attendance Roster">
+                🖨️ Print
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btnRefreshRoster" title="Refresh Attendance">
+                🔄
+              </button>
+              <button class="btn btn-danger-subtle btn-sm" id="btnDeleteCurrentMeeting"
+                title="Delete this selected meeting session" style="display: none; align-items: center; gap: 0.3rem;">
+                🗑️ Delete Session
+              </button>
+            </div>
+          </div>
+
+          <!-- Metrics Row -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;">
+            <div
+              style="padding: 0.75rem 1rem; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Total Attended</div>
+              <div style="font-size: 1.45rem; font-weight: 700; color: var(--primary);" id="statTotalAttendees">0</div>
+            </div>
+            <div
+              style="padding: 0.75rem 1rem; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">On Time</div>
+              <div style="font-size: 1.45rem; font-weight: 700; color: var(--success);" id="statOnTime">0</div>
+            </div>
+            <div
+              style="padding: 0.75rem 1rem; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Late Arrivals</div>
+              <div style="font-size: 1.45rem; font-weight: 700; color: var(--warning);" id="statLate">0</div>
+            </div>
+          </div>
+
+          <!-- Table Controls -->
+          <div class="table-actions">
+            <div style="min-width: 260px;">
+              <label class="form-label" style="font-size: 0.75rem;">Selected Meeting Session</label>
+              <select id="selectActiveMeeting" class="form-input" style="cursor: pointer;">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="search-field">
+              <label class="form-label" style="font-size: 0.75rem;">Search Roster</label>
+              <input type="text" id="searchRoster" class="form-input"
+                placeholder="Search by name, UDISE code, or designation...">
+            </div>
+          </div>
+
+          <!-- Attendance Table -->
+          <div class="table-responsive">
+            <table class="roster-table">
+              <thead>
+                <tr>
+                  <th style="width: 38px; text-align: center;">
+                    <input type="checkbox" id="chkSelectAllRoster" title="Select / Deselect all attendees" style="cursor: pointer;">
+                  </th>
+                  <th style="width: 45px;">#</th>
+                  <th>Officer / Attendee Name</th>
+                  <th>UDISE Code</th>
+                  <th>Status</th>
+                  <th>Joined Time</th>
+                  <th>Device</th>
+                  <th style="text-align: right; width: 50px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="rosterTableBody">
+                <!-- Populated dynamically by admin.js -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty State -->
+          <div id="rosterEmptyState"
+            style="display: none; text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+            <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">👥</div>
+            <h4 style="color: var(--text); font-size: 0.95rem; font-weight: 600;">No Attendance Logged Yet</h4>
+            <p style="font-size: 0.82rem; margin-top: 0.25rem;">Share the attendance link with officers or principals.
+              As soon as they click or submit, they will appear here live.</p>
+          </div>
+        </div>
+      </main>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-notice" id="toastNotice">
+    <span id="toastIcon">✓</span>
+    <span id="toastText">Action completed</span>
+  </div>
+
+  <!-- Modal: 1-Minute Google Sheets Setup Guide & Code -->
+  <div class="modal-backdrop-custom" id="modalSheetsGuide" style="display: none;">
+    <div class="modal-card-custom">
+      <div class="modal-header-custom">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.25rem;">📊</span>
+          <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text);">Google Sheets Cloud Database Setup (1 Minute)</h3>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnCloseGuideModal" style="padding: 0.2rem 0.55rem; font-size: 1.15rem; line-height: 1;">&times;</button>
+      </div>
+      <div class="modal-body-custom">
+        <p style="margin-bottom: 0.85rem; color: var(--text-muted);">
+          Google Sheets acts as a free, live online Excel database. Follow these 4 quick steps to connect your portal:
+        </p>
+
+        <ol style="padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem;">
+          <li>
+            <strong>Create a new Google Sheet:</strong><br>
+            Go to <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" style="color: var(--primary); font-weight: 600;">sheets.new</a> in your browser and name the spreadsheet <em>"APTWREIS Zoom Meetings & Attendance"</em>.
+          </li>
+          <li>
+            <strong>Open Apps Script Editor:</strong><br>
+            In your Google Sheet, click <strong>Extensions</strong> → <strong>Apps Script</strong>.
+          </li>
+          <li>
+            <strong>Paste the Backend Script:</strong><br>
+            Delete whatever is in <code>Code.gs</code>, copy the script below, and paste it into the editor:
+            <div style="display: flex; justify-content: flex-end; margin-top: 0.35rem;">
+              <button type="button" class="btn btn-primary btn-sm" id="btnCopyAppsScript" style="font-size: 0.74rem;">
+                📋 Copy Google Apps Script Code
+              </button>
+            </div>
+            <div class="code-snippet-box" id="codeSnippetBox">
+              Loading script...
+            </div>
+          </li>
+          <li>
+            <strong>Deploy as Web App:</strong><br>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+              • Click <strong>Deploy</strong> (top right blue button) → <strong>New deployment</strong>.<br>
+              • Click the gear icon ⚙️ next to "Select type" → choose <strong>Web app</strong>.<br>
+              • <strong>Execute as:</strong> Select <code>Me</code>.<br>
+              • <strong>Who has access:</strong> Select <code>Anyone</code> <em>(CRITICAL: allows all officers/principals to load meetings and mark attendance without Google sign-in)</em>.<br>
+              • Click <strong>Deploy</strong>, grant permissions if prompted, and copy the <strong>Web app URL</strong>.
+            </div>
+          </li>
+          <li>
+            <strong>Connect to Portal:</strong><br>
+            Paste your Web app URL into the box in the Admin portal and click <strong>"Save & Connect"</strong>.
+          </li>
+        </ol>
+      </div>
+      <div class="modal-footer-custom">
+        <button type="button" class="btn btn-primary btn-sm" id="btnCloseGuideModal2">Close Setup Guide</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/sheets-config.js"></script>
+  <script src="js/sheets-service.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+
+</html>
